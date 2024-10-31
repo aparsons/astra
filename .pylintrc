@@ -1,0 +1,3 @@
+# Ignore specific messages
+disable=
+    C0114, # Missing module docstring

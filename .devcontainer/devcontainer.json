@@ -1,0 +1,37 @@
+{
+    "name": "python:3",
+    // https://github.com/devcontainers/images/tree/main/src/python
+    "image": "mcr.microsoft.com/devcontainers/python:3",
+    "forwardPorts": [8000],
+    "features": {
+        // https://github.com/devcontainers/features/tree/main/src/docker-outside-of-docker
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+        "ghcr.io/mikaello/devcontainer-features/modern-shell-utils:1": {}
+    },
+    "customizations": {
+      // Configure properties specific to VS Code.
+      "vscode": {
+        // Add the IDs of extensions you want installed when the container is created.
+        "extensions": [
+            "bierner.markdown-mermaid",
+            "editorconfig.editorconfig",
+            "github.copilot",
+            "github.copilot-chat",
+            "johnpapa.vscode-peacock",
+            "ms-python.python",
+            "ms-python.pylint",
+            "ms-python.vscode-pylance",
+            "mikoz.black-py",
+            "pkief.material-icon-theme",
+            "streetsidesoftware.code-spell-checker",
+            "timonwong.shellcheck"
+        ],
+        "settings": {
+          "pylint.args": ["--rcfile=.pylintrc"],
+          "python.defaultInterpreterPath": "./.venv/bin/python"
+        }
+      }
+    },
+    "postCreateCommand": "pipx install poetry && poetry install",
+    "remoteUser": "vscode"
+  }
