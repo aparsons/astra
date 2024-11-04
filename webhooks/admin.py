@@ -16,6 +16,6 @@ class GitHubWebhookAdmin(admin.ModelAdmin):
     search_fields = ["public_id"]
 
     def get_queryset(self, request: HttpRequest) -> QuerySet:
-       return super().get_queryset(request).defer("client_id", "client_secret")
+       return super().get_queryset(request).defer("client_id")
 
 admin.site.register(GitHubWebhook, GitHubWebhookAdmin)
