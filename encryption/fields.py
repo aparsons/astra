@@ -2,7 +2,8 @@ import logging
 
 from cryptography.fernet import Fernet, MultiFernet, InvalidToken
 from django.conf import settings
-from django.db.models import CharField, TextField
+from django.db.models import TextField
+from django.forms import PasswordInput
 from django.utils.translation import gettext as _
 
 
@@ -21,29 +22,25 @@ def get_fernet() -> MultiFernet:
     return MultiFernet([primary_fernet] + fallback_fernets)
 
 def encrypt(value: str) -> str:
-    logger.debug("Encrypting value: %s", value)
     return get_fernet().encrypt(value.encode("utf-8")).decode("utf-8")
 
 def decrypt(value: str) -> str:
-    logger.debug("Decrypting value: %s", value)
     return get_fernet().decrypt(value.encode("utf-8")).decode("utf-8")
 
+def rotate(value: str) -> str:
+    return get_fernet().rotate(value.encode("utf-8")).decode("utf-8")
 
-class EncryptionMixin(object):
+class EncryptedTextField(TextField):
+    description = _("Encrypted text")
+
+    # TODO Change to PasswordInput widget
+
     def from_db_value(self, value, expression, connection):
         try:
             return decrypt(value)
         except InvalidToken:
-            logger.error("Invalid encryption token: %s", value)
+            logger.warning("Invalid encryption token: %s", value)
             return value
 
     def get_prep_value(self, value):
         return encrypt(value)
-
-
-class EncryptedCharField(EncryptionMixin, CharField):
-    pass
-
-
-class EncryptedTextField(EncryptionMixin, TextField):
-    pass
