@@ -11,28 +11,66 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 import os
-
 from pathlib import Path
+
+from django.core.management.utils import get_random_secret_key
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-*5jiey677yh&w6i(igebn3!m#gp3-0+kw(++z2nh#!w8l0gdug"
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+# SECURITY WARNING: keep the secret key used in production secret!
+# https://docs.djangoproject.com/en/5.1/ref/settings/#secret-key
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY")
+if DEBUG and not SECRET_KEY:
+    if DEBUG:
+        django_secret_key_file = ".django_secret_key"
+        if os.path.isfile(django_secret_key_file):
+            with open(django_secret_key_file) as f:
+                SECRET_KEY = f.read().strip()
+        else:
+            SECRET_KEY = get_random_secret_key()
+            with open(django_secret_key_file, "w") as f:
+                f.write(SECRET_KEY)
+            print(f"Generated new SECRET_KEY and saved to {django_secret_key_file}")
+    else:
+        raise ValueError("The SECRET_KEY environment variable is not set and DEBUG is False.")
+
+# https://docs.djangoproject.com/en/5.1/ref/settings/#std-setting-SECRET_KEY_FALLBACKS
+SECRET_KEY_FALLBACKS = []
+
+# SECURITY WARNING: keep the encryption key used in production secret!
+ENCRYPTION_KEY = os.getenv("DJANGO_ENCRYPTION_KEY")
+if DEBUG and not ENCRYPTION_KEY:
+    if DEBUG:
+        django_encryption_key_file = ".django_encryption_key"
+        if os.path.isfile(django_encryption_key_file):
+            with open(django_encryption_key_file, "rb") as f:
+                ENCRYPTION_KEY = f.read()
+        else:
+            from cryptography.fernet import Fernet
+            ENCRYPTION_KEY = Fernet.generate_key()
+            with open(django_encryption_key_file, "wb") as f:
+                f.write(ENCRYPTION_KEY)
+            print(f"Generated new ENCRYPTION_KEY and saved to {django_encryption_key_file}")
+    else:
+        raise ValueError("The ENCRYPTION_KEY environment variable is not set and DEBUG is False.")
+
+ENCRYPTION_KEY_FALLBACKS = []
+
+# https://docs.djangoproject.com/en/5.1/ref/settings/#allowed-hosts
 ALLOWED_HOSTS = []
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    "encryption.apps.EncryptionConfig",
     "webhooks.apps.WebhooksConfig",
 
     "django.contrib.admin",
@@ -153,8 +191,8 @@ LOGGING = {
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
-
 STATIC_URL = "static/"
+# STATICFILES_DIRS = [BASE_DIR / "static"]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
