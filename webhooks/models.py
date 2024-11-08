@@ -1,5 +1,4 @@
 from django.db import models
-from django.forms import PasswordInput
 from django.utils.translation import gettext as _
 
 from encryption.fields import EncryptedTextField
