@@ -33,8 +33,6 @@ def rotate(value: str) -> str:
 class EncryptedTextField(TextField):
     description = _("Encrypted text")
 
-    # TODO Change to PasswordInput widget
-
     def from_db_value(self, value, expression, connection):
         try:
             return decrypt(value)
@@ -47,9 +45,11 @@ class EncryptedTextField(TextField):
 
     def rotate(self):
         logger.debug("Rotating encryption keys for field %s", self.name)
-        # Rotate the encryption key by re-encrypting the value
-        # with the new key and saving it back to the field
-        for obj in self.model.objects.all():
-            value = getattr(obj, self.attname)
-            setattr(obj, self.attname, value)
-            obj.save()
+        print("+++Rotating encryption keys for field %s", self.name)
+        self.value = rotate(self.value)
+        self.save()
+
+    def formfield(self, **kwargs):
+        # Use a PasswordInput widget for the form field
+        kwargs["widget"] = PasswordInput(render_value=True)
+        return super().formfield(**kwargs)
