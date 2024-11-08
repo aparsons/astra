@@ -44,3 +44,12 @@ class EncryptedTextField(TextField):
 
     def get_prep_value(self, value):
         return encrypt(value)
+
+    def rotate(self):
+        logger.debug("Rotating encryption keys for field %s", self.name)
+        # Rotate the encryption key by re-encrypting the value
+        # with the new key and saving it back to the field
+        for obj in self.model.objects.all():
+            value = getattr(obj, self.attname)
+            setattr(obj, self.attname, value)
+            obj.save()
