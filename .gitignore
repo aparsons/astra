@@ -5,10 +5,7 @@
 **/migrations/*
 !**/migrations/__init__.py
 
-.django_encryption_key
-.django_secret_key
-.django_superuser_password
-
+.django_*
 
 # Created by https://www.toptal.com/developers/gitignore/api/django,python
 # Edit at https://www.toptal.com/developers/gitignore?templates=django,python
