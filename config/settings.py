@@ -31,11 +31,12 @@ if DEBUG and not SECRET_KEY:
     if DEBUG:
         django_secret_key_file = ".django_secret_key"
         if os.path.isfile(django_secret_key_file):
-            with open(django_secret_key_file) as f:
+            print(f"Reading SECRET_KEY from {django_secret_key_file}")
+            with open(django_secret_key_file, "r", encoding="utf-8") as f:
                 SECRET_KEY = f.read().strip()
         else:
             SECRET_KEY = get_random_secret_key()
-            with open(django_secret_key_file, "w") as f:
+            with open(django_secret_key_file, "w", encoding="utf-8") as f:
                 f.write(SECRET_KEY)
             print(f"Generated new SECRET_KEY and saved to {django_secret_key_file}")
     else:
@@ -50,16 +51,17 @@ if DEBUG and not ENCRYPTION_KEY:
     if DEBUG:
         django_encryption_key_file = ".django_encryption_key"
         if os.path.isfile(django_encryption_key_file):
-            with open(django_encryption_key_file, "rb") as f:
-                ENCRYPTION_KEY = f.read()
+            print(f"Reading ENCRYPTION_KEY from {django_encryption_key_file}")
+            with open(django_encryption_key_file, "r", encoding="utf-8") as f:
+                ENCRYPTION_KEY = f.read().strip().encode("utf-8")
         else:
             from cryptography.fernet import Fernet
             ENCRYPTION_KEY = Fernet.generate_key()
-            with open(django_encryption_key_file, "wb") as f:
-                f.write(ENCRYPTION_KEY)
+            with open(django_encryption_key_file, "w", encoding="utf-8") as f:
+                f.write(ENCRYPTION_KEY.decode("utf-8"))
             print(f"Generated new ENCRYPTION_KEY and saved to {django_encryption_key_file}")
     else:
-        raise ValueError("The ENCRYPTION_KEY environment variable is not set and DEBUG is False.")
+        raise ValueError("The ENCRYPTION_KEY environment variable is not set and DEBUG is False. Use `python manage.py generate_encryption_key` to generate a new key.")
 
 ENCRYPTION_KEY_FALLBACKS = []
 
