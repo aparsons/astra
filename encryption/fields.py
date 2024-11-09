@@ -56,7 +56,7 @@ class EncryptedTextField(TextField):
         self.value = rotate(self.value)
         self.save()
 
-    # def formfield(self, **kwargs):
-    #     # Use a PasswordInput widget for the form field
-    #     kwargs["widget"] = PasswordInput(render_value=True)
-    #     return super().formfield(**kwargs)
+    def formfield(self, **kwargs):
+        # Use a PasswordInput widget for the form field
+        kwargs["widget"] = PasswordInput(render_value=True)
+        return super().formfield(**kwargs)
