@@ -34,9 +34,6 @@ def decrypt(value: str) -> str:
         logger.error("Unable to decrypt, invalid token")
     return "Unable to decrypt"
 
-def rotate(value: str) -> str:
-    return fernet.rotate(value.encode("utf-8")).decode("utf-8")
-
 class EncryptedTextField(TextField):
     description = _("Encrypted text")
 
@@ -49,12 +46,6 @@ class EncryptedTextField(TextField):
 
     def get_prep_value(self, value):
         return encrypt(value)
-
-    def rotate(self):
-        logger.debug("Rotating encryption keys for field %s", self.name)
-        print("+++Rotating encryption keys for field %s", self.name)
-        self.value = rotate(self.value)
-        self.save()
 
     def formfield(self, **kwargs):
         # Use a PasswordInput widget for the form field
