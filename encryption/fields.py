@@ -13,22 +13,29 @@ def get_fernet() -> MultiFernet:
     if settings.ENCRYPTION_KEY:
         primary_fernet = Fernet(settings.ENCRYPTION_KEY)
     else:
-        raise ValueError("ENCRYPTION_KEY setting is not set")
+        raise ValueError("ENCRYPTION_KEY setting must be set")
 
     fallback_fernets = []
-    if settings.ENCRYPTION_KEY_FALLBACKS:
+    if hasattr(settings, "ENCRYPTION_KEY_FALLBACKS") and settings.ENCRYPTION_KEY_FALLBACKS:
+        logger.info("Using fallback encryption keys, please run `python manage.py rotate_encryption_keys`")
         fallback_fernets = [Fernet(key) for key in settings.ENCRYPTION_KEY_FALLBACKS]
 
     return MultiFernet([primary_fernet] + fallback_fernets)
 
+fernet = get_fernet()
+
 def encrypt(value: str) -> str:
-    return get_fernet().encrypt(value.encode("utf-8")).decode("utf-8")
+    return fernet.encrypt(value.encode("utf-8")).decode("utf-8")
 
 def decrypt(value: str) -> str:
-    return get_fernet().decrypt(value.encode("utf-8")).decode("utf-8")
+    try:
+        return fernet.decrypt(value.encode("utf-8")).decode("utf-8")
+    except InvalidToken:
+        logger.error("Unable to decrypt, invalid token")
+    return "Unable to decrypt"
 
 def rotate(value: str) -> str:
-    return get_fernet().rotate(value.encode("utf-8")).decode("utf-8")
+    return fernet.rotate(value.encode("utf-8")).decode("utf-8")
 
 class EncryptedTextField(TextField):
     description = _("Encrypted text")
@@ -49,7 +56,7 @@ class EncryptedTextField(TextField):
         self.value = rotate(self.value)
         self.save()
 
-    def formfield(self, **kwargs):
-        # Use a PasswordInput widget for the form field
-        kwargs["widget"] = PasswordInput(render_value=True)
-        return super().formfield(**kwargs)
+    # def formfield(self, **kwargs):
+    #     # Use a PasswordInput widget for the form field
+    #     kwargs["widget"] = PasswordInput(render_value=True)
+    #     return super().formfield(**kwargs)
