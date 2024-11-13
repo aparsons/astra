@@ -5,7 +5,7 @@ from django.shortcuts import get_object_or_404
 
 from .models import GitHubWebhook
 
-logger = logging.getLogger("project.webhooks.views")
+logger = logging.getLogger("astra.webhooks.views")
 
 def index(request: HttpRequest) -> HttpResponse:
     """

@@ -7,7 +7,8 @@ from django.forms import PasswordInput
 from django.utils.translation import gettext as _
 
 
-logger = logging.getLogger("project.encryption")
+logger = logging.getLogger("astra.encryption")
+
 
 def get_fernet() -> MultiFernet:
     if settings.ENCRYPTION_KEY:
