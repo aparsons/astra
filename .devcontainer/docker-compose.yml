@@ -1,4 +1,0 @@
-# TODO: Create a dockercompose file for the devcontainer
-# TODO: Add a postgres service to the dockercompose file
-# TODO: Add a redis service to the dockercompose file
-# TODO: Add a smee.io service to the dockercompose file

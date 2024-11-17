@@ -1,0 +1,43 @@
+# TODO: Create a dockercompose file for the devcontainer
+# TODO: Add a postgres service to the dockercompose file
+# TODO: Add a redis service to the dockercompose file
+# TODO: Add a smee.io service to the dockercompose file
+
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: mydatabase
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:6
+    ports:
+      - "6379:6379"
+
+  smee:
+    image: deltaprojects/smee-client
+    command: smee --url https://smee.io/NP59jhHPw2Ujd2ML --target http://web:8000/webhooks/github/123/handle
+    ports:
+      - "3000:3000"
+    depends_on:
+      - web
+
+  web:
+    build: .
+    command: python manage.py migrate && python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+
+volumes:
+  postgres_data:
