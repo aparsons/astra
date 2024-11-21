@@ -47,5 +47,8 @@ def handle_github_webhook(request: HttpRequest, public_id: str) -> HttpResponse:
 
         logger.debug(f"Received payload: {payload}")
 
+        # TODO: Validate the payload signature
+        # TODO: Parse the action from the payload
+
         GitHubWebhookEvent.objects.create(webhook=webhook, delivery_uuid=delivery_uuid, event=event, payload=payload)
         return JsonResponse(data={"status": "success"}, status=202)
