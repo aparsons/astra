@@ -22,7 +22,7 @@ class GitHubWebhook(models.Model):
     def __str__(self):
         return self.public_id
 
-
+# TODO: Review indexes and constraints
 class GitHubWebhookEvent(models.Model):
     webhook = models.ForeignKey(GitHubWebhook, on_delete=models.CASCADE)
     delivery_uuid = models.UUIDField(unique=True, db_index=True, help_text=_("A globally unique identifier (GUID) to identify the event."))
