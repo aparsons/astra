@@ -55,4 +55,6 @@ generate_superuser() {
 
 generate_superuser
 
+python manage.py load_fixtures
+
 python manage.py runserver
