@@ -1,9 +1,11 @@
+import json
 import logging
 
 from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 
+from .forms import GitHubWebhookEventForm
 from .models import GitHubWebhook, GitHubWebhookEvent
 
 logger = logging.getLogger("astra.webhooks.views")
@@ -27,6 +29,11 @@ def index(request: HttpRequest) -> HttpResponse:
 @csrf_exempt
 def handle_github_webhook(request: HttpRequest, public_id: str) -> HttpResponse:
     if request.method == "POST":
+        if request.content_type != "application/json":
+            # If the content type is not supported, return a 415 Unsupported Media Type response.
+            logger.warning("Unsupported content type %s for webhook %s", request.content_type, webhook)
+            return JsonResponse(data={"error": { "code": 415, "message": "Unsupported Media Type"}}, status=415)
+
         webhook = get_object_or_404(GitHubWebhook, public_id=public_id, enabled=True)
 
         delivery_uuid = request.headers["X-GitHub-Delivery"]
@@ -43,12 +50,47 @@ def handle_github_webhook(request: HttpRequest, public_id: str) -> HttpResponse:
 
         logger.info(f"Received {event} event for webhook {webhook}")
 
-        payload = request.body
+        if event == "installation":
+            try:
+                payload = json.loads(request.body)
+            except json.JSONDecodeError as e:
+                # If the payload is not valid JSON, return a 400 Bad Request response.
+                logger.warning("Invalid JSON payload for webhook %s: %s", webhook, e)
+                logger.debug(f"Received request body: {request.body.decode("utf-8")}")
+                return JsonResponse(data={"error": { "code": 400, "message": "Invalid JSON payload"}}, status=400)
 
-        logger.debug(f"Received payload: {payload}")
+            action = payload.get("action")
+            logger.info(f"Received {action} action for event {event} for webhook {webhook}")
+            if action == "created":
+                # Handle the installation created event
+                pass
+            elif action == "deleted":
+                # Handle the installation deleted event
+                pass
+            else:
+                logger.warning("Unsupported action %s for event %s for webhook %s", action, event, webhook)
+                logger.debug(f"Received payload: {payload}")
+                return JsonResponse(data={"error": { "code": 400, "message": "Unsupported action"}}, status=400)
+        else:
+            logger.warning("Unsupported event %s for webhook %s", event, webhook)
+            logger.debug(f"Received request body: {request.body.decode("utf-8")}")
+            return JsonResponse(data={"error": { "code": 400, "message": "Unsupported event"}}, status=400)
 
         # TODO: Validate the payload signature
         # TODO: Parse the action from the payload
+
+        # form = GitHubWebhookEventForm()
+        # form.delivery_uuid = delivery_uuid
+        # form.event = event
+        # form.action = action
+        # form.payload = payload
+
+        # if form.is_valid():
+        #     logger.info("Valid form data for webhook %s", webhook)
+        # else:
+        #     for field, errors in form.errors.items():
+        #         for error in errors:
+        #             logger.warning("Invalid form data for webhook %s field %s: %s", webhook, field, error)
 
         GitHubWebhookEvent.objects.create(webhook=webhook, delivery_uuid=delivery_uuid, event=event, payload=payload)
         return JsonResponse(data={"status": "success"}, status=202)
