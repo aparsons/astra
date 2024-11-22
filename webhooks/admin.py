@@ -23,13 +23,11 @@ admin.site.register(GitHubWebhook, GitHubWebhookAdmin)
 
 class GitHubWebhookEventAdmin(admin.ModelAdmin):
     date_hierarchy = 'created_at'
-    list_display = ['id', 'webhook', 'event', 'created_at', 'updated_at']
-    list_display_links = ['id', 'webhook']
-    list_filter = ['event', 'created_at', 'updated_at']
+    list_display = ['id', 'webhook__public_id', 'delivery_uuid', 'event', 'action', 'created_at', 'updated_at']
+    list_display_links = ['id', 'delivery_uuid']
+    list_filter = ['webhook', 'event', 'action', 'created_at', 'updated_at']
+    list_select_related = ["webhook"]
     readonly_fields = ("created_at", "updated_at")
-    search_fields = ["webhook__public_id", "event"]
+    search_fields = ["webhook__public_id", "delivery_uuid", "event"]
 
-    def get_queryset(self, request: HttpRequest) -> QuerySet:
-       return super().get_queryset(request).select_related("webhook")
-
-admin.site.register(GitHubWebhookEvent)
+admin.site.register(GitHubWebhookEvent, GitHubWebhookEventAdmin)
