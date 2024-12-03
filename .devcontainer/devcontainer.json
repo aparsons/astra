@@ -17,6 +17,7 @@
         // Add the IDs of extensions you want installed when the container is created.
         "extensions": [
             "bierner.markdown-mermaid",
+            "charliermarsh.ruff",
             "editorconfig.editorconfig",
             "github.copilot",
             "github.copilot-chat",
