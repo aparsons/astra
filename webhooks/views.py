@@ -29,20 +29,20 @@ def index(request: HttpRequest) -> HttpResponse:
 @csrf_exempt
 def handle_github_webhook(request: HttpRequest, public_id: str) -> HttpResponse:
     if request.method == "POST":
-        if request.content_type != "application/json":
-            # If the content type is not supported, return a 415 Unsupported Media Type response.
-            logger.warning("Unsupported content type %s for webhook %s", request.content_type, webhook)
-            return JsonResponse(data={"error": { "code": 415, "message": "Unsupported Media Type"}}, status=415)
-
         webhook = get_object_or_404(GitHubWebhook, public_id=public_id, enabled=True)
 
-        delivery_uuid = request.headers["X-GitHub-Delivery"]
+        if request.content_type != "application/json":
+            # If the content type is not supported, return a 415 Unsupported Media Type response.
+            logger.warning("Unsupported media type %s for webhook %s", request.content_type, webhook)
+            return JsonResponse(data={"error": { "code": 415, "message": "Unsupported Media Type"}}, status=415)
+
+        delivery_uuid = request.headers.get("X-GitHub-Delivery")
         if not delivery_uuid:
             # If the X-GitHub-Delivery header is missing, return a 400 Bad Request response.
             logger.warning("Missing X-GitHub-Delivery header for webhook %s", webhook)
             return JsonResponse(data={"error": { "code": 400, "message": "Missing X-GitHub-Delivery header"}}, status=400)
 
-        event = request.headers["X-GitHub-Event"]
+        event = request.headers.get("X-GitHub-Event")
         if not event:
             # If the X-GitHub-Event header is missing, return a 400 Bad Request response.
             logger.warning("Missing X-GitHub-Event header for webhook %s", webhook)
