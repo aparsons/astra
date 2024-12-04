@@ -5,9 +5,9 @@ from encryption.fields import EncryptedTextField
 
 class GitHubWebhook(models.Model):
     public_id = models.SlugField(unique=True, db_index=True, help_text=_("A unique public identifier for the webhook."))
-    client_id = EncryptedTextField()
+    client_id = EncryptedTextField() # TODO: Is this field needed? Consider removing it.
     secret_token = EncryptedTextField(help_text=_("A secret token used to sign the webhook requests."))
-    # TODO: verification_enabled = models.BooleanField(default=True, help_text=_("Enable signature verification for incoming requests."))
+    validate_deliveries = models.BooleanField(default=True, help_text=_("Validate delivery payload using the secret token."))
     disallow_duplicate_deliveries = models.BooleanField(default=True, help_text=_("Disallow duplicate deliveries for the same event."))
     enabled = models.BooleanField(default=True, db_index=True, help_text=_("Enable or disable the webhook."))
     created_at = models.DateTimeField(auto_now_add=True, editable=False, db_index=True)

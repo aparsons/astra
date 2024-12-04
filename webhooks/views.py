@@ -53,17 +53,27 @@ def handle_github_webhook_event(request: HttpRequest, public_id: str) -> HttpRes
             logger.warning("Missing X-GitHub-Event header for webhook %s", webhook)
             return JsonResponse(data={"error": { "code": 400, "message": "Missing X-GitHub-Event header"}}, status=400)
 
+        # TODO: Verify webhook event types
+
         logger.info(f"Received {event} event for webhook {webhook}")
 
-        if event == "installation":
-            try:
-                payload = json.loads(request.body)
-            except json.JSONDecodeError as e:
-                # If the payload is not valid JSON, return a 400 Bad Request response.
-                logger.warning("Invalid JSON payload for webhook %s: %s", webhook, e)
-                logger.debug(f"Received request body: {request.body.decode("utf-8")}")
-                return JsonResponse(data={"error": { "code": 400, "message": "Invalid JSON payload"}}, status=400)
+        try:
+            # TODO Add support for application/x-www-form-urlencoded
+            # application/x-www-form-urlencoded will send the JSON payload as a form parameter called payload.
+            # https://docs.github.com/en/webhooks/using-webhooks/creating-webhooks#creating-an-organization-webhook
 
+            payload = json.loads(request.body)
+        except json.JSONDecodeError as e:
+            # If the payload is not valid JSON, return a 400 Bad Request response.
+            logger.warning("Invalid JSON payload for webhook %s: %s", webhook, e)
+            logger.debug(f"Received request body: {request.body.decode("utf-8")}")
+            return JsonResponse(data={"error": { "code": 400, "message": "Invalid JSON payload"}}, status=400)
+
+        if webhook.validate_deliveries:
+            # TODO: Validate the payload signature
+            pass
+
+        if event == "installation":
             action = payload.get("action")
             logger.info(f"Received {action} action with {event} event for webhook {webhook}")
             if action == "created":
@@ -89,8 +99,6 @@ def handle_github_webhook_event(request: HttpRequest, public_id: str) -> HttpRes
             logger.warning("Unsupported event %s for webhook %s", event, webhook)
             logger.debug(f"Received request body: {request.body.decode("utf-8")}")
             return JsonResponse(data={"error": { "code": 400, "message": "Unsupported event"}}, status=400)
-
-        # TODO: Validate the payload signature
 
         GitHubWebhookEvent.objects.create(webhook=webhook, delivery_uuid=delivery_uuid, event=event, payload=payload)
         return JsonResponse(data={"status": "accepted"}, status=202)

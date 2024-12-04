@@ -70,6 +70,7 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 202)
         self.assertEqual(response.json(), {"status": "accepted"})
 
+        # TODO: Fix this test - Fails because duplicate delivery check is enabled
         # Test for 202 when event is "installation" and action is "deleted"
         response = self.client.post(url, data=json.dumps({"action": "deleted"}), content_type="application/json", headers=headers)
         self.assertEqual(response.status_code, 202)
