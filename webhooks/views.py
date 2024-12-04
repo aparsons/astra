@@ -60,7 +60,7 @@ def handle_github_webhook(request: HttpRequest, public_id: str) -> HttpResponse:
                 return JsonResponse(data={"error": { "code": 400, "message": "Invalid JSON payload"}}, status=400)
 
             action = payload.get("action")
-            logger.info(f"Received {action} action for event {event} for webhook {webhook}")
+            logger.info(f"Received {action} action with {event} event for webhook {webhook}")
             if action == "created":
                 # Handle the installation created event
                 pass
@@ -68,7 +68,7 @@ def handle_github_webhook(request: HttpRequest, public_id: str) -> HttpResponse:
                 # Handle the installation deleted event
                 pass
             else:
-                logger.warning("Unsupported action %s for event %s for webhook %s", action, event, webhook)
+                logger.warning(f"Unsupported action {action} with event {event} for webhook {webhook}")
                 logger.debug(f"Received payload: {payload}")
                 return JsonResponse(data={"error": { "code": 400, "message": "Unsupported action"}}, status=400)
         else:
@@ -93,4 +93,4 @@ def handle_github_webhook(request: HttpRequest, public_id: str) -> HttpResponse:
         #             logger.warning("Invalid form data for webhook %s field %s: %s", webhook, field, error)
 
         GitHubWebhookEvent.objects.create(webhook=webhook, delivery_uuid=delivery_uuid, event=event, payload=payload)
-        return JsonResponse(data={"status": "success"}, status=202)
+        return JsonResponse(data={"status": "accepted"}, status=202)
