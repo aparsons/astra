@@ -53,3 +53,24 @@ class ViewsTest(TestCase):
         response = self.client.post(url, data=json.dumps({}), content_type="application/json", headers=headers)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {"error": {"code": 400, "message": "Unsupported event"}})
+
+        # Test for 400 when event is "installation" but JSON payload is invalid
+        headers["X-GitHub-Event"] = "installation"
+        response = self.client.post(url, data="invalid", content_type="application/json", headers=headers)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {"error": {"code": 400, "message": "Invalid JSON payload"}})
+
+        # Test for 400 when event is "installation" but action is unsupported
+        response = self.client.post(url, data=json.dumps({"action": "unsupported"}), content_type="application/json", headers=headers)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {"error": {"code": 400, "message": "Unsupported action"}})
+
+        # Test for 202 when event is "installation" and action is "created"
+        response = self.client.post(url, data=json.dumps({"action": "created"}), content_type="application/json", headers=headers)
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.json(), {"status": "accepted"})
+
+        # Test for 202 when event is "installation" and action is "deleted"
+        response = self.client.post(url, data=json.dumps({"action": "deleted"}), content_type="application/json", headers=headers)
+        self.assertEqual(response.status_code, 202)
+        self.assertEqual(response.json(), {"status": "accepted"})
