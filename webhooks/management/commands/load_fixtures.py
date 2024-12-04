@@ -23,6 +23,8 @@ class Command(BaseCommand):
             public_id="123",
             client_id="test-client-id",
             secret_token=secret_token,
+            # Allow duplicate deliveries for testing purposes
+            disallow_duplicate_deliveries=False,
         )
 
         self.stdout.write(self.style.SUCCESS(f"Created GitHub webhook: {webhook}"))

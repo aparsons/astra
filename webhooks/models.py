@@ -8,6 +8,7 @@ class GitHubWebhook(models.Model):
     client_id = EncryptedTextField()
     secret_token = EncryptedTextField(help_text=_("A secret token used to sign the webhook requests."))
     # TODO: verification_enabled = models.BooleanField(default=True, help_text=_("Enable signature verification for incoming requests."))
+    disallow_duplicate_deliveries = models.BooleanField(default=True, help_text=_("Disallow duplicate deliveries for the same event."))
     enabled = models.BooleanField(default=True, db_index=True, help_text=_("Enable or disable the webhook."))
     created_at = models.DateTimeField(auto_now_add=True, editable=False, db_index=True)
     updated_at = models.DateTimeField(auto_now=True, editable=False, db_index=True)

@@ -5,7 +5,6 @@ from django.http import HttpRequest, HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 
-from .forms import GitHubWebhookEventForm
 from .models import GitHubWebhook, GitHubWebhookEvent
 
 logger = logging.getLogger("astra.webhooks.views")
@@ -27,7 +26,7 @@ def index(request: HttpRequest) -> HttpResponse:
 # https://docs.github.com/en/webhooks/using-webhooks/handling-webhook-deliveries
 # https://docs.github.com/en/webhooks/webhook-events-and-payloads#delivery-headers
 @csrf_exempt
-def handle_github_webhook(request: HttpRequest, public_id: str) -> HttpResponse:
+def handle_github_webhook_event(request: HttpRequest, public_id: str) -> HttpResponse:
     if request.method == "POST":
         webhook = get_object_or_404(GitHubWebhook, public_id=public_id, enabled=True)
 
@@ -41,6 +40,12 @@ def handle_github_webhook(request: HttpRequest, public_id: str) -> HttpResponse:
             # If the X-GitHub-Delivery header is missing, return a 400 Bad Request response.
             logger.warning("Missing X-GitHub-Delivery header for webhook %s", webhook)
             return JsonResponse(data={"error": { "code": 400, "message": "Missing X-GitHub-Delivery header"}}, status=400)
+
+        if webhook.disallow_duplicate_deliveries:
+            # If duplicate deliveries are not allowed, check if the delivery already exists.
+            if GitHubWebhookEvent.objects.filter(webhook=webhook, delivery_uuid=delivery_uuid).exists():
+                logger.warning(f"Duplicate delivery {delivery_uuid} for webhook {webhook}")
+                return JsonResponse(data={"error": { "code": 400, "message": "Duplicate delivery"}}, status=400)
 
         event = request.headers.get("X-GitHub-Event")
         if not event:
@@ -62,10 +67,19 @@ def handle_github_webhook(request: HttpRequest, public_id: str) -> HttpResponse:
             action = payload.get("action")
             logger.info(f"Received {action} action with {event} event for webhook {webhook}")
             if action == "created":
-                # Handle the installation created event
+                # Someone installed a GitHub App on a user or organization account.
                 pass
             elif action == "deleted":
-                # Handle the installation deleted event
+                # Someone uninstalled a GitHub App from their user or organization account.
+                pass
+            elif action == "new_permissions_accepted":
+                # Someone granted new permissions to a GitHub App.
+                pass
+            elif action == "suspend":
+                # Someone blocked access by a GitHub App to their user or organization account.
+                pass
+            elif action == "unsuspend":
+                # A GitHub App that was blocked from accessing a user or organization account was given access the account again.
                 pass
             else:
                 logger.warning(f"Unsupported action {action} with event {event} for webhook {webhook}")
@@ -77,20 +91,6 @@ def handle_github_webhook(request: HttpRequest, public_id: str) -> HttpResponse:
             return JsonResponse(data={"error": { "code": 400, "message": "Unsupported event"}}, status=400)
 
         # TODO: Validate the payload signature
-        # TODO: Parse the action from the payload
-
-        # form = GitHubWebhookEventForm()
-        # form.delivery_uuid = delivery_uuid
-        # form.event = event
-        # form.action = action
-        # form.payload = payload
-
-        # if form.is_valid():
-        #     logger.info("Valid form data for webhook %s", webhook)
-        # else:
-        #     for field, errors in form.errors.items():
-        #         for error in errors:
-        #             logger.warning("Invalid form data for webhook %s field %s: %s", webhook, field, error)
 
         GitHubWebhookEvent.objects.create(webhook=webhook, delivery_uuid=delivery_uuid, event=event, payload=payload)
         return JsonResponse(data={"status": "accepted"}, status=202)

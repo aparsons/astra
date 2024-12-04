@@ -15,7 +15,7 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Hello, world. You're at the webhooks index.")
 
-    def test_handle_github_webhook(self):
+    def test_handle_github_webhook_event(self):
         public_id = "123456"
         url = f"/webhooks/github/{public_id}/handle"
         delivery_uuid = str(uuid.uuid4())

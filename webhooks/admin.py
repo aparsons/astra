@@ -9,7 +9,7 @@ from .models import GitHubWebhook, GitHubWebhookEvent
 
 class GitHubWebhookAdmin(admin.ModelAdmin):
     date_hierarchy = 'created_at'
-    list_display = ['id', 'public_id', 'enabled', 'created_at', 'updated_at']
+    list_display = ['id', 'public_id', 'enabled', 'disallow_duplicate_deliveries', 'created_at', 'updated_at']
     list_display_links = ['id', 'public_id']
     list_filter = ['enabled', 'created_at', 'updated_at']
     readonly_fields = ("created_at", "updated_at")
