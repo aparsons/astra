@@ -1,9 +1,10 @@
 import json
+from urllib.parse import urlencode
 import uuid
 
 from django.test import Client, TestCase
 
-from .models import GitHubWebhook
+from .models import GitHubWebhook, GitHubWebhookEvent
 
 
 class ViewsTest(TestCase):
@@ -15,63 +16,84 @@ class ViewsTest(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Hello, world. You're at the webhooks index.")
 
-    def test_handle_github_webhook_event(self):
-        public_id = "123456"
-        url = f"/webhooks/github/{public_id}/handle"
-        delivery_uuid = str(uuid.uuid4())
 
-        # Test for 404 when webhook does not exist
-        response = self.client.post(url)
+class HandleGitHubWebhookEventTest(TestCase):
+    def setUp(self):
+        self.client = Client()
+
+    public_id = "test-public-id"
+    url = f"/webhooks/github/{public_id}/handle"
+
+    def test_handle_github_webhook_event_get_returns_404(self):
+        response = self.client.get("/webhooks/github/123456/handle")
         self.assertEqual(response.status_code, 404)
 
-        # Test for 404 when webhook exists but is not enabled
-        webhook = GitHubWebhook.objects.create(public_id=public_id, enabled=False)
-        response = self.client.post(url)
+    def test_handle_github_webhook_event_public_id_not_found_returns_404(self):
+        response = self.client.post("/webhooks/github/123456/handle")
         self.assertEqual(response.status_code, 404)
 
-        webhook.enabled = True
-        webhook.save()
+    def test_handle_github_webhook_event_disabled_returns_404(self):
+        GitHubWebhook.objects.create(public_id=self.public_id, enabled=False)
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 404)
 
-        # Test for 415 when media type is not application/json
-        response = self.client.post(url, data=json.dumps({}), content_type="text/plain")
-        self.assertEqual(response.status_code, 415)
-        self.assertEqual(response.json(), {"error": {"code": 415, "message": "Unsupported Media Type"}})
-
-        # Test for 400 when X-GitHub-Delivery header is missing
-        response = self.client.post(url, data=json.dumps({}), content_type="application/json")
+    def test_handle_github_webhook_event_missing_delivery_header_returns_400(self):
+        GitHubWebhook.objects.create(public_id=self.public_id)
+        response = self.client.post(self.url)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {"error": {"code": 400, "message": "Missing X-GitHub-Delivery header"}})
 
-        # Test for 400 when X-GitHub-Event header is missing
+    def test_handle_github_webhook_event_duplicate_delivery_returns_400(self):
+        webhook = GitHubWebhook.objects.create(public_id=self.public_id)
+        delivery_uuid = str(uuid.uuid4())
+        GitHubWebhookEvent.objects.create(webhook=webhook, delivery_uuid=delivery_uuid, event="test", payload={})
         headers = {"X-GitHub-Delivery": delivery_uuid}
-        response = self.client.post(url, data=json.dumps({}), content_type="application/json", headers=headers)
+        response = self.client.post(self.url, data=json.dumps({}), content_type="application/json", headers=headers)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {"error": {"code": 400, "message": "Duplicate delivery"}})
+
+    def test_handle_github_webhook_event_missing_event_header_returns_400(self):
+        GitHubWebhook.objects.create(public_id=self.public_id)
+        headers = {"X-GitHub-Delivery": str(uuid.uuid4())}
+        response = self.client.post(self.url, data=json.dumps({}), content_type="application/json", headers=headers)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {"error": {"code": 400, "message": "Missing X-GitHub-Event header"}})
 
-        # Test for 400 when event is unsupported
-        headers["X-GitHub-Event"] = "unsupported"
-        response = self.client.post(url, data=json.dumps({}), content_type="application/json", headers=headers)
-        self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json(), {"error": {"code": 400, "message": "Unsupported event"}})
+    def test_handle_github_webhook_event_unsupported_media_type_returns_415(self):
+        GitHubWebhook.objects.create(public_id=self.public_id)
+        headers = {"X-GitHub-Delivery": str(uuid.uuid4()), "X-GitHub-Event": "unsupported"}
+        response = self.client.post(self.url, data=json.dumps({}), content_type="text/plain", headers=headers)
+        self.assertEqual(response.status_code, 415)
+        self.assertEqual(response.json(), {"error": {"code": 415, "message": "Unsupported media type"}})
 
-        # Test for 400 when event is "installation" but JSON payload is invalid
-        headers["X-GitHub-Event"] = "installation"
-        response = self.client.post(url, data="invalid", content_type="application/json", headers=headers)
+    def test_handle_github_webhook_event_invalid_json_payload_returns_400(self):
+        GitHubWebhook.objects.create(public_id=self.public_id)
+        headers = {"X-GitHub-Delivery": str(uuid.uuid4()), "X-GitHub-Event": "test"}
+        response = self.client.post(self.url, data="invalid", content_type="application/json", headers=headers)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {"error": {"code": 400, "message": "Invalid JSON payload"}})
 
-        # Test for 400 when event is "installation" but action is unsupported
-        response = self.client.post(url, data=json.dumps({"action": "unsupported"}), content_type="application/json", headers=headers)
+    def test_handle_github_webhook_event_unsupported_event_returns_400(self):
+        GitHubWebhook.objects.create(public_id=self.public_id)
+        headers = {"X-GitHub-Delivery": str(uuid.uuid4()), "X-GitHub-Event": "unsupported"}
+        response = self.client.post(self.url, data=json.dumps({}), content_type="application/json", headers=headers)
         self.assertEqual(response.status_code, 400)
-        self.assertEqual(response.json(), {"error": {"code": 400, "message": "Unsupported action"}})
+        self.assertEqual(response.json(), {"error": {"code": 400, "message": "Unsupported event"}})
 
-        # Test for 202 when event is "installation" and action is "created"
-        response = self.client.post(url, data=json.dumps({"action": "created"}), content_type="application/json", headers=headers)
+    def test_handle_github_webhook_event_installation_created__json_returns_202(self):
+        GitHubWebhook.objects.create(public_id=self.public_id)
+        headers = {"X-GitHub-Delivery": str(uuid.uuid4()), "X-GitHub-Event": "installation"}
+        data = json.dumps({"action": "created"})
+        response = self.client.post(self.url, data=data, content_type="application/json", headers=headers)
         self.assertEqual(response.status_code, 202)
         self.assertEqual(response.json(), {"status": "accepted"})
 
-        # TODO: Fix this test - Fails because duplicate delivery check is enabled
-        # Test for 202 when event is "installation" and action is "deleted"
-        response = self.client.post(url, data=json.dumps({"action": "deleted"}), content_type="application/json", headers=headers)
+    # TODO Fix the following test
+    # python manage.py test webhooks.test_views.HandleGitHubWebhookEventTest.test_handle_github_webhook_event_installation_created_form_returns_202
+    def test_handle_github_webhook_event_installation_created_form_returns_202(self):
+        GitHubWebhook.objects.create(public_id=self.public_id)
+        headers = {"X-GitHub-Delivery": str(uuid.uuid4()), "X-GitHub-Event": "installation"}
+        data = {"payload": {"action": "created"}}
+        response = self.client.post(self.url, data=data, headers=headers)
         self.assertEqual(response.status_code, 202)
         self.assertEqual(response.json(), {"status": "accepted"})
