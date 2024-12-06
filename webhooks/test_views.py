@@ -59,6 +59,13 @@ class HandleGitHubWebhookEventTest(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {"error": {"code": 400, "message": "Missing X-GitHub-Event header"}})
 
+    def test_handle_github_webhook_event_invalid_url_encoded_payload_returns_400(self):
+        GitHubWebhook.objects.create(public_id=self.public_id)
+        headers = {"X-GitHub-Delivery": str(uuid.uuid4()), "X-GitHub-Event": "test"}
+        response = self.client.post(self.url, data="invalid", content_type="application/x-www-form-urlencoded", headers=headers)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {"error": {"code": 400, "message": "Invalid URL-encoded payload"}})
+
     def test_handle_github_webhook_event_unsupported_media_type_returns_415(self):
         GitHubWebhook.objects.create(public_id=self.public_id)
         headers = {"X-GitHub-Delivery": str(uuid.uuid4()), "X-GitHub-Event": "unsupported"}
@@ -73,27 +80,52 @@ class HandleGitHubWebhookEventTest(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {"error": {"code": 400, "message": "Invalid JSON payload"}})
 
+    def test_handle_github_webhook_event_payload_without_delivery_uuid_returns_400(self):
+        GitHubWebhook.objects.create(public_id=self.public_id)
+        headers = {"X-GitHub-Delivery": str(uuid.uuid4()), "X-GitHub-Event": "test"}
+        response = self.client.post(self.url, data=json.dumps({}), content_type="application/json", headers=headers)
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json(), {"error": {"code": 400, "message": "X-GitHub-Delivery header must match payload"}})
+
     def test_handle_github_webhook_event_unsupported_event_returns_400(self):
         GitHubWebhook.objects.create(public_id=self.public_id)
-        headers = {"X-GitHub-Delivery": str(uuid.uuid4()), "X-GitHub-Event": "unsupported"}
-        response = self.client.post(self.url, data=json.dumps({}), content_type="application/json", headers=headers)
+        delivery_uuid = str(uuid.uuid4())
+        headers = {"X-GitHub-Delivery": delivery_uuid, "X-GitHub-Event": "unsupported"}
+        data = {
+            delivery_uuid: {
+                "action": "created"
+            }
+        }
+        response = self.client.post(self.url, data=json.dumps(data), content_type="application/json", headers=headers)
         self.assertEqual(response.status_code, 400)
         self.assertEqual(response.json(), {"error": {"code": 400, "message": "Unsupported event"}})
 
-    def test_handle_github_webhook_event_installation_created__json_returns_202(self):
+    def test_handle_github_webhook_event_installation_created_json_returns_202(self):
         GitHubWebhook.objects.create(public_id=self.public_id)
-        headers = {"X-GitHub-Delivery": str(uuid.uuid4()), "X-GitHub-Event": "installation"}
-        data = json.dumps({"action": "created"})
-        response = self.client.post(self.url, data=data, content_type="application/json", headers=headers)
+        delivery_uuid = str(uuid.uuid4())
+        headers = {"X-GitHub-Delivery": delivery_uuid, "X-GitHub-Event": "installation"}
+        data = {
+            delivery_uuid: {
+                "action": "created"
+            }
+        }
+        response = self.client.post(self.url, data=json.dumps(data), content_type="application/json", headers=headers)
         self.assertEqual(response.status_code, 202)
         self.assertEqual(response.json(), {"status": "accepted"})
 
-    # TODO Fix the following test
     # python manage.py test webhooks.test_views.HandleGitHubWebhookEventTest.test_handle_github_webhook_event_installation_created_form_returns_202
     def test_handle_github_webhook_event_installation_created_form_returns_202(self):
         GitHubWebhook.objects.create(public_id=self.public_id)
-        headers = {"X-GitHub-Delivery": str(uuid.uuid4()), "X-GitHub-Event": "installation"}
-        data = {"payload": {"action": "created"}}
-        response = self.client.post(self.url, data=data, headers=headers)
+        delivery_uuid = str(uuid.uuid4())
+        headers = {"X-GitHub-Delivery": delivery_uuid, "X-GitHub-Event": "installation"}
+        data = {
+            "payload": {
+                delivery_uuid: {
+                    "action": "created"
+                }
+            }
+        }
+        encoded_data = urlencode(data)
+        response = self.client.post(self.url, data=encoded_data, content_type="application/x-www-form-urlencoded", headers=headers)
         self.assertEqual(response.status_code, 202)
         self.assertEqual(response.json(), {"status": "accepted"})

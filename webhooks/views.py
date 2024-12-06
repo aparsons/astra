@@ -1,5 +1,6 @@
 import json
 import logging
+from urllib.parse import parse_qs
 
 from django.http import HttpRequest, HttpResponse, HttpResponseNotFound, JsonResponse
 from django.shortcuts import get_object_or_404
@@ -47,21 +48,26 @@ def handle_github_webhook_event(request: HttpRequest, public_id: str) -> HttpRes
             # If the X-GitHub-Event header is missing, return a 400 Bad Request response.
             logger.warning("Missing X-GitHub-Event header for webhook %s", webhook)
             return JsonResponse(data={"error": { "code": 400, "message": "Missing X-GitHub-Event header"}}, status=400)
-
         # TODO Verify webhook event types
 
         logger.info(f"Received {event} event for webhook {webhook}")
-
-
         logger.debug(f"Received request body: {request.body.decode("utf-8")}")
+
         # If the content type is "application/x-www-form-urlencoded", extract the payload from the "payload" parameter.
         if request.content_type == "application/x-www-form-urlencoded":
-            body = request.POST.get("payload")
-            logger.debug(f"+++++Received payload: {body}")
+            try:
+                decoded_payload = parse_qs(request.body.decode("utf-8"), strict_parsing=True)
+            except ValueError as e:
+                logger.warning(f"Invalid URL-encoded payload for webhook {webhook}: {e}")
+                return JsonResponse(data={"error": { "code": 400, "message": "Invalid URL-encoded payload"}}, status=400)
+
+            body = decoded_payload.get("payload")[0]
+            # TODO Add handling for if the payload isn't present in the request body
+            body = body.replace("'", '"')
+            # TODO Replacing single quotes with double quotes is a workaround for the URL-encoded payload.
         # If the content type is "application/json", extract the payload from the request body.
         elif request.content_type == "application/json":
-            body = request.body
-            logger.debug(f"+++++Received payload: {body}")
+            body = request.body.decode("utf-8")
         else:
             # If the content type is not supported, return a 415 Unsupported Media Type response.
             logger.warning("Unsupported media type %s for webhook %s", request.content_type, webhook)
@@ -73,17 +79,21 @@ def handle_github_webhook_event(request: HttpRequest, public_id: str) -> HttpRes
         except json.JSONDecodeError as e:
             # If the payload is not valid JSON, return a 400 Bad Request response.
             logger.warning(f"Invalid JSON payload for webhook {webhook}: {e}")
-            logger.debug(f"Received invalid JSON request body: {request.body.decode("utf-8")}")
+            logger.debug(f"Received invalid JSON request body: {body}")
             return JsonResponse(data={"error": { "code": 400, "message": "Invalid JSON payload"}}, status=400)
 
         if webhook.validate_deliveries:
-            # TODO Verify the delivery_uuid from the header matches the delivery UUID in the payload.
-
             # TODO Validate the payload signature
             pass
 
+        # Get the delivery from the payload using the delivery UUID.
+        delivery = payload.get(delivery_uuid)
+        if not delivery:
+            logger.warning(f"Delivery {delivery_uuid} not found in payload for webhook {webhook}")
+            return JsonResponse(data={"error": { "code": 400, "message": "X-GitHub-Delivery header must match payload"}}, status=400)
+
         if event == "installation":
-            action = payload.get("action")
+            action = delivery.get("action")
             logger.info(f"Received {action} action with {event} event for webhook {webhook}")
             if action == "created":
                 # Someone installed a GitHub App on a user or organization account.
