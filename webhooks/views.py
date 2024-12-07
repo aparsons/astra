@@ -83,6 +83,7 @@ def handle_github_webhook_event(request: HttpRequest, public_id: str) -> HttpRes
             return JsonResponse(data={"error": { "code": 400, "message": "Invalid JSON payload"}}, status=400)
 
         if webhook.validate_deliveries:
+            # TODO Validate the user agent
             # TODO Validate the payload signature
             pass
 
