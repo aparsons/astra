@@ -1,4 +1,4 @@
-name: run-python-poetry-django-ci
+name: test-python-poetry-django
 
 on:
   push:
