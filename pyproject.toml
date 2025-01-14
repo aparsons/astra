@@ -10,6 +10,7 @@ package-mode = false
 python = "^3.12"
 Django = "^5.1.4"
 cryptography = "^43.0.3"
+openai = "^1.59.7"
 
 
 [build-system]

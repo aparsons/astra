@@ -24,6 +24,7 @@ delete_migrations() {
     echo "All migration files in $MIGRATIONS_DIR have been deleted, except for __init__.py."
 }
 
+delete_migrations "openai_client/migrations"
 delete_migrations "webhooks/migrations"
 
 python manage.py makemigrations

@@ -65,6 +65,16 @@ if DEBUG and not ENCRYPTION_KEY:
 
 ENCRYPTION_KEY_FALLBACKS = []
 
+# SECURITY WARNING: keep the OpenAI API key used in production secret!
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+if DEBUG and not OPENAI_API_KEY:
+    django_openai_api_key_file = ".django_openai_api_key"
+    if os.path.isfile(django_openai_api_key_file):
+        print(f"Reading OPENAI_API_KEY from {django_openai_api_key_file}")
+        with open(django_openai_api_key_file, "r", encoding="utf-8") as f:
+            OPENAI_API_KEY = f.read().strip()
+
+
 # https://docs.djangoproject.com/en/5.1/ref/settings/#allowed-hosts
 ALLOWED_HOSTS = []
 
@@ -73,6 +83,7 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     "encryption.apps.EncryptionConfig",
+    "openai_chat.apps.OpenAIChatConfig",
     "webhooks.apps.WebhooksConfig",
 
     "django.contrib.admin",
