@@ -21,6 +21,7 @@
             "editorconfig.editorconfig",
             "github.copilot",
             "github.copilot-chat",
+            "github.vscode-github-actions",
             "johnpapa.vscode-peacock",
             "ms-python.python",
             "ms-python.pylint",
