@@ -31,8 +31,14 @@ jobs:
     - name: Install Dependencies
       run: |
         poetry install
+    # Make migrations
+    # This is only temporary, as we should make migrations locally but this is a quick fix for now
+    # TODO: Remove this step when migrations are committed to the repository
+    - name: Make Migrations (Temporary)
+      run: |
+        poetry run python manage.py makemigrations
     # Run migrations
-    - name: Run Migrations
+    - name: Migrate
       run: |
         poetry run python manage.py migrate
     # Run tests
