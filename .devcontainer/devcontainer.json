@@ -37,6 +37,6 @@
         }
       }
     },
-    "postCreateCommand": "pipx install poetry && poetry install && poetry env info",
+    "postCreateCommand": "pipx install poetry && poetry install && poetry self add poetry-plugin-shell && poetry env info",
     "remoteUser": "vscode"
   }
