@@ -13,7 +13,7 @@ jobs:
       matrix:
         # Python versions to test against should be the same as the versions supported by Django
         # https://docs.djangoproject.com/en/5.1/faq/install/#what-python-version-can-i-use-with-django
-        python-version: [3.10, 3.11, 3.12, 3.13]
+        python-version: ['3.10', '3.11', '3.12', '3.13']
     steps:
     # Checkout the code
     - uses: actions/checkout@v4
@@ -26,6 +26,7 @@ jobs:
     - name: Install Poetry
       run: |
         curl -sSL https://install.python-poetry.org | python -
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
     # Install dependencies
     - name: Install Dependencies
       run: |
